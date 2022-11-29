@@ -36,11 +36,19 @@ var H = canvas.height = window.innerHeight-50;
 var wscounter = 0;
 var socket;
 
+var star = new Image();
+var star2 = new Image();
+var stars = new Image();
+
+star.src = "star.png"
+star2.src = "star2.png"
+stars.src = "sparks.png"
+
 function debug(str) {
     var debugDiv = document.getElementById('debug');
     debugDiv.innerHTML = "" + str;
 }
-debug("Test");
+//debug("Test1");
 
 world = {};
 
@@ -48,29 +56,25 @@ world = {};
 function drawCircle(context,entity) {
     with(context) {
         beginPath();                
-        lineWidth = 3;
         var x = entity["x"];
         var y = entity["y"];
-        //moveTo(x,y);
-        context.shadowBlur = 50
-        context.shadowColor = "white"
-        fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
-        arc(x,y,(entity["radius"])?entity["radius"]:20,0,2.0*Math.PI,false)
-        stroke();
-        context.fill();
-        context.filter = 'blur(5px)';
-        context.restore();
+        
+        if (entity["type"] === "star") {
+            context.drawImage(star, x-60, y-40);
+        }
+        else if (entity["type"] === "star2") {
+            context.drawImage(star2, x-60, y-40);
+        }
+        else {
+            context.drawImage(stars, x-60, y-40);
+        }
                                 
     }
 }
 
 function prepEntity(entity) {
-    if (!entity["colour"]) {
-        entity["colour"] = "#FF0000";
-    }
-    if (!entity["radius"]) {
-        entity["radius"] = 50;
+    if (!entity["type"]) {
+        entity["type"] = "stars";
     }
     return entity;
 }
@@ -240,15 +244,15 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'#'+(Math.random()*0xFFFFFF<<0).toString(16), 'radius':'30'});
+    addEntityWithoutName({'x':x,'y':y,'type':'star2'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'#'+(Math.random()*0xFFFFFF<<0).toString(16), 'radius':'30'});
+    addEntityWithoutName({'x':x,'y':y,'type':'star'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'#'+(Math.random()*0xFFFFFF<<0).toString(16), 'radius':'30'});
+    addEntityWithoutName({'x':x,'y':y,'type' : 'stars'});
 });
 
 
@@ -262,13 +266,20 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        fetch("/world")
+        .then((response)=>{
+            return response.json()
+        }).then((response)=>{
+            world = response;
+            drawNextFrame();
+        })
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
     };
     socket.onmessage = function(msg) {  
         try {
-            debug("WebSocket Recv:" + msg.data);
+            //debug("WebSocket Recv:" + msg.data);
             //XXX: TODO What are you going to do here? 
             var recv_data = JSON.parse(msg.data);
             for(let key in recv_data){
